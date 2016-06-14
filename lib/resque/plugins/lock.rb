@@ -44,16 +44,16 @@ module Resque
 
       # Override in your job to control the lock experiation time. This is the
       # time in seconds that the lock should be considered valid. The default
-      # is one hour (3600 seconds).
+      # is 15 min (900 seconds).
       def lock_timeout
-        3600
+        900
       end
 
       # Override in your job to control the lock key. It is
       # passed the same arguments as `perform`, that is, your job's
       # payload.
       def lock(*args)
-        "lock:#{name}-#{args.to_s}"
+        "lock:#{name}-#{args.reject{|i| i.is_a?(Exception)}.to_s}"
       end
 
       # See the documentation for SETNX http://redis.io/commands/setnx for an
@@ -83,6 +83,10 @@ module Resque
           # error.
           Resque.redis.del(lock(*args))
         end
+      end
+
+      def on_failure_clear_lock(*args)
+        Resque.redis.del(lock(*args))
       end
     end
   end
